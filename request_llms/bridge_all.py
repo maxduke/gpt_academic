@@ -34,6 +34,9 @@ from .bridge_google_gemini import predict_no_ui_long_connection  as genai_noui
 from .bridge_zhipu import predict_no_ui_long_connection as zhipu_noui
 from .bridge_zhipu import predict as zhipu_ui
 
+from .bridge_taichu import predict_no_ui_long_connection as taichu_noui
+from .bridge_taichu import predict as taichu_ui
+
 from .bridge_cohere import predict as cohere_ui
 from .bridge_cohere import predict_no_ui_long_connection as cohere_noui
 
@@ -116,6 +119,15 @@ model_info = {
         "token_cnt": get_token_num_gpt35,
     },
 
+    "taichu": {
+        "fn_with_ui": taichu_ui,
+        "fn_without_ui": taichu_noui,
+        "endpoint": openai_endpoint,
+        "max_token": 4096,
+        "tokenizer": tokenizer_gpt35,
+        "token_cnt": get_token_num_gpt35,
+    },
+
     "gpt-3.5-turbo-16k": {
         "fn_with_ui": chatgpt_ui,
         "fn_without_ui": chatgpt_noui,
@@ -183,6 +195,7 @@ model_info = {
         "fn_with_ui": chatgpt_ui,
         "fn_without_ui": chatgpt_noui,
         "endpoint": openai_endpoint,
+        "has_multimodal_capacity": True,
         "max_token": 128000,
         "tokenizer": tokenizer_gpt4,
         "token_cnt": get_token_num_gpt4,
@@ -191,6 +204,7 @@ model_info = {
     "gpt-4o-2024-05-13": {
         "fn_with_ui": chatgpt_ui,
         "fn_without_ui": chatgpt_noui,
+        "has_multimodal_capacity": True,
         "endpoint": openai_endpoint,
         "max_token": 128000,
         "tokenizer": tokenizer_gpt4,
@@ -227,6 +241,7 @@ model_info = {
     "gpt-4-turbo": {
         "fn_with_ui": chatgpt_ui,
         "fn_without_ui": chatgpt_noui,
+        "has_multimodal_capacity": True,
         "endpoint": openai_endpoint,
         "max_token": 128000,
         "tokenizer": tokenizer_gpt4,
@@ -236,6 +251,7 @@ model_info = {
     "gpt-4-turbo-2024-04-09": {
         "fn_with_ui": chatgpt_ui,
         "fn_without_ui": chatgpt_noui,
+        "has_multimodal_capacity": True,
         "endpoint": openai_endpoint,
         "max_token": 128000,
         "tokenizer": tokenizer_gpt4,
@@ -844,6 +860,15 @@ if "sparkv3" in AVAIL_LLM_MODELS or "sparkv3.5" in AVAIL_LLM_MODELS:   # 讯飞�
                 "max_token": 4096,
                 "tokenizer": tokenizer_gpt35,
                 "token_cnt": get_token_num_gpt35,
+            },
+            "sparkv4":{
+                "fn_with_ui": spark_ui,
+                "fn_without_ui": spark_noui,
+                "can_multi_thread": True,
+                "endpoint": None,
+                "max_token": 4096,
+                "tokenizer": tokenizer_gpt35,
+                "token_cnt": get_token_num_gpt35,
             }
         })
     except:
@@ -932,21 +957,31 @@ for model in [m for m in AVAIL_LLM_MODELS if m.startswith("one-api-")]:
     #   "mixtral-8x7b"      是模型名（必要）
     #   "(max_token=6666)"  是配置（非必要）
     try:
-        _, max_token_tmp = read_one_api_model_name(model)
+        origin_model_name, max_token_tmp = read_one_api_model_name(model)
+        # 如果是已知模型，则尝试获取其信息
+        original_model_info = model_info.get(origin_model_name.replace("one-api-", "", 1), None)
     except:
         print(f"one-api模型 {model} 的 max_token 配置不是整数，请检查配置文件。")
         continue
-    model_info.update({
-        model: {
-            "fn_with_ui": chatgpt_ui,
-            "fn_without_ui": chatgpt_noui,
-            "can_multi_thread": True,
-            "endpoint": openai_endpoint,
-            "max_token": max_token_tmp,
-            "tokenizer": tokenizer_gpt35,
-            "token_cnt": get_token_num_gpt35,
-        },
-    })
+    this_model_info = {
+        "fn_with_ui": chatgpt_ui,
+        "fn_without_ui": chatgpt_noui,
+        "can_multi_thread": True,
+        "endpoint": openai_endpoint,
+        "max_token": max_token_tmp,
+        "tokenizer": tokenizer_gpt35,
+        "token_cnt": get_token_num_gpt35,
+    }
+
+    # 同步已知模型的其他信息
+    attribute = "has_multimodal_capacity"
+    if original_model_info is not None and original_model_info.get(attribute, None) is not None: this_model_info.update({attribute: original_model_info.get(attribute, None)})
+    # attribute = "attribute2"
+    # if original_model_info is not None and original_model_info.get(attribute, None) is not None: this_model_info.update({attribute: original_model_info.get(attribute, None)})
+    # attribute = "attribute3"
+    # if original_model_info is not None and original_model_info.get(attribute, None) is not None: this_model_info.update({attribute: original_model_info.get(attribute, None)})
+    model_info.update({model: this_model_info})
+
 # -=-=-=-=-=-=- vllm 对齐支持 -=-=-=-=-=-=-
 for model in [m for m in AVAIL_LLM_MODELS if m.startswith("vllm-")]:
     # 为了更灵活地接入vllm多模型管理界面，设计了此接口，例子：AVAIL_LLM_MODELS = ["vllm-/home/hmp/llm/cache/Qwen1___5-32B-Chat(max_token=6666)"]

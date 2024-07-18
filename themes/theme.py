@@ -71,28 +71,9 @@ def from_cookie_str(c):
 """
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 第 3 部分
-内嵌的javascript代码
+内嵌的javascript代码（这部分代码会逐渐移动到common.js中）
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 """
-
-js_code_for_css_changing = """(css) => {
-    var existingStyles = document.querySelectorAll("body > gradio-app > div > style")
-    for (var i = 0; i < existingStyles.length; i++) {
-        var style = existingStyles[i];
-        style.parentNode.removeChild(style);
-    }
-    var existingStyles = document.querySelectorAll("style[data-loaded-css]");
-    for (var i = 0; i < existingStyles.length; i++) {
-        var style = existingStyles[i];
-        style.parentNode.removeChild(style);
-    }
-    var styleElement = document.createElement('style');
-    styleElement.setAttribute('data-loaded-css', 'placeholder');
-    styleElement.innerHTML = css;
-    document.body.appendChild(styleElement);
-}
-"""
-
 
 js_code_for_toggle_darkmode = """() => {
     if (document.querySelectorAll('.dark').length) {
@@ -114,6 +95,8 @@ js_code_for_persistent_cookie_init = """(web_cookie_cache, cookie) => {
 # 详见 themes/common.js
 js_code_reset = """
 (a,b,c)=>{
+    let stopButton = document.getElementById("elem_stop");
+    stopButton.click();
     return reset_conversation(a,b);
 }
 """

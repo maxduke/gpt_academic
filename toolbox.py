@@ -220,9 +220,10 @@ def CatchException(f):
         try:
             yield from f(main_input, llm_kwargs, plugin_kwargs, chatbot_with_cookie, history, *args, **kwargs)
         except FriendlyException as e:
+            tb_str = '```\n' + trimmed_format_exc() + '```'
             if len(chatbot_with_cookie) == 0:
                 chatbot_with_cookie.clear()
-                chatbot_with_cookie.append(["插件调度异常", None])
+                chatbot_with_cookie.append(["插件调度异常:\n" + tb_str, None])
             chatbot_with_cookie[-1] = [chatbot_with_cookie[-1][0], e.generate_error_html()]
             yield from update_ui(chatbot=chatbot_with_cookie, history=history, msg=f'异常')  # 刷新界面
         except Exception as e:
@@ -564,8 +565,6 @@ def generate_file_link(report_files:List[str]):
             f'<br/><a href="file={os.path.abspath(f)}" target="_blank">{f}</a>'
         )
     return file_links
-
-
 
 
 def on_report_generated(cookies:dict, files:List[str], chatbot:ChatBotWithCookies):
@@ -921,15 +920,18 @@ def get_pictures_list(path):
     return file_manifest
 
 
-def have_any_recent_upload_image_files(chatbot:ChatBotWithCookies):
+def have_any_recent_upload_image_files(chatbot:ChatBotWithCookies, pop:bool=False):
     _5min = 5 * 60
     if chatbot is None:
         return False, None  # chatbot is None
-    most_recent_uploaded = chatbot._cookies.get("most_recent_uploaded", None)
+    if pop:
+        most_recent_uploaded = chatbot._cookies.pop("most_recent_uploaded", None)
+    else:
+        most_recent_uploaded = chatbot._cookies.get("most_recent_uploaded", None)
+    # most_recent_uploaded 是一个放置最新上传图像的路径
     if not most_recent_uploaded:
         return False, None  # most_recent_uploaded is None
     if time.time() - most_recent_uploaded["time"] < _5min:
-        most_recent_uploaded = chatbot._cookies.get("most_recent_uploaded", None)
         path = most_recent_uploaded["path"]
         file_manifest = get_pictures_list(path)
         if len(file_manifest) == 0:
