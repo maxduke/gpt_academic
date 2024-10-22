@@ -131,6 +131,9 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# macOS files
+.DS_Store
+
 .vscode
 .idea
 
@@ -157,3 +160,4 @@ test.*
 temp.*
 objdump*
 *.min.*.js
+TODO

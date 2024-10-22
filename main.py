@@ -13,16 +13,10 @@ help_menu_description = \
 </br></br>如何语音对话: 请阅读Wiki
 </br></br>如何临时更换API_KEY: 在输入区输入临时API_KEY后提交（网页刷新后失效）"""
 
+from loguru import logger
 def enable_log(PATH_LOGGING):
-    import logging
-    admin_log_path = os.path.join(PATH_LOGGING, "admin")
-    os.makedirs(admin_log_path, exist_ok=True)
-    log_dir = os.path.join(admin_log_path, "chat_secrets.log")
-    try:logging.basicConfig(filename=log_dir, level=logging.INFO, encoding="utf-8", format="%(asctime)s %(levelname)-8s %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
-    except:logging.basicConfig(filename=log_dir, level=logging.INFO,  format="%(asctime)s %(levelname)-8s %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
-    # Disable logging output from the 'httpx' logger
-    logging.getLogger("httpx").setLevel(logging.WARNING)
-    print(f"所有对话记录将自动保存在本地目录{log_dir}, 请注意自我隐私保护哦！")
+    from shared_utils.logging import setup_logging
+    setup_logging(PATH_LOGGING)
 
 def encode_plugin_info(k, plugin)->str:
     import copy
@@ -42,8 +36,15 @@ def main():
     import gradio as gr
     if gr.__version__ not in ['3.32.9', '3.32.10', '3.32.11']:
         raise ModuleNotFoundError("使用项目内置Gradio获取最优体验! 请运行 `pip install -r requirements.txt` 指令安装内置Gradio及其他依赖, 详情信息见requirements.txt.")
-    from request_llms.bridge_all import predict
+    
+    # 一些基础工具
     from toolbox import format_io, find_free_port, on_file_uploaded, on_report_generated, get_conf, ArgsGeneralWrapper, DummyWith
+
+    # 对话、日志记录
+    enable_log(get_conf("PATH_LOGGING"))
+
+    # 对话句柄
+    from request_llms.bridge_all import predict
 
     # 读取配置
     proxies, WEB_PORT, LLM_MODEL, CONCURRENT_COUNT, AUTHENTICATION = get_conf('proxies', 'WEB_PORT', 'LLM_MODEL', 'CONCURRENT_COUNT', 'AUTHENTICATION')
@@ -61,8 +62,6 @@ def main():
     from themes.theme import load_dynamic_theme, to_cookie_str, from_cookie_str, assign_user_uuid
     title_html = f"<h1 align=\"center\">GPT 学术优化 {get_current_version()}</h1>{theme_declaration}"
 
-    # 对话、日志记录
-    enable_log(PATH_LOGGING)
 
     # 一些普通功能模块
     from core_functional import get_core_functions
@@ -112,8 +111,18 @@ def main():
                 with gr.Accordion("输入区", open=True, elem_id="input-panel") as area_input_primary:
                     with gr.Row():
                         txt = gr.Textbox(show_label=False, placeholder="Input question here.", elem_id='user_input_main').style(container=False)
-                    with gr.Row():
-                        submitBtn = gr.Button("提交", elem_id="elem_submit", variant="primary")
+                    with gr.Row(elem_id="gpt-submit-row"):
+                        multiplex_submit_btn = gr.Button("提交", elem_id="elem_submit_visible", variant="primary")
+                        multiplex_sel = gr.Dropdown(
+                            choices=[
+                                "常规对话", 
+                                "多模型对话", 
+                                "智能召回 RAG",
+                                # "智能上下文", 
+                            ], value="常规对话",
+                            interactive=True, label='', show_label=False,
+                            elem_classes='normal_mut_select', elem_id="gpt-submit-dropdown").style(container=False)
+                        submit_btn = gr.Button("提交", elem_id="elem_submit", variant="primary", visible=False)
                     with gr.Row():
                         resetBtn = gr.Button("重置", elem_id="elem_reset", variant="secondary"); resetBtn.style(size="sm")
                         stopBtn = gr.Button("停止", elem_id="elem_stop", variant="secondary"); stopBtn.style(size="sm")
@@ -160,7 +169,7 @@ def main():
                                 if not plugin.get("AsButton", True): dropdown_fn_list.append(k)     # 排除已经是按钮的插件
                                 elif plugin.get('AdvancedArgs', False): dropdown_fn_list.append(k)  # 对于需要高级参数的插件，亦在下拉菜单中显示
                             with gr.Row():
-                                dropdown = gr.Dropdown(dropdown_fn_list, value=r"点击这里搜索插件列表", label="", show_label=False).style(container=False)
+                                dropdown = gr.Dropdown(dropdown_fn_list, value=r"点击这里输入「关键词」搜索插件", label="", show_label=False).style(container=False)
                             with gr.Row():
                                 plugin_advanced_arg = gr.Textbox(show_label=True, label="高级参数输入区", visible=False, elem_id="advance_arg_input_legacy",
                                                                  placeholder="这里是特殊函数插件的高级参数输入区").style(container=False)
@@ -177,7 +186,7 @@ def main():
 
         # 浮动菜单定义
         from themes.gui_floating_menu import define_gui_floating_menu
-        area_input_secondary, txt2, area_customize, submitBtn2, resetBtn2, clearBtn2, stopBtn2 = \
+        area_input_secondary, txt2, area_customize, _, resetBtn2, clearBtn2, stopBtn2 = \
             define_gui_floating_menu(customize_btns, functional, predefined_btns, cookies, web_cookie_cache)
 
         # 插件二级菜单的实现
@@ -209,11 +218,15 @@ def main():
         input_combo_order = ["cookies", "max_length_sl", "md_dropdown", "txt", "txt2", "top_p", "temperature", "chatbot", "history", "system_prompt", "plugin_advanced_arg"]
         output_combo = [cookies, chatbot, history, status]
         predict_args = dict(fn=ArgsGeneralWrapper(predict), inputs=[*input_combo, gr.State(True)], outputs=output_combo)
+        
         # 提交按钮、重置按钮
-        cancel_handles.append(txt.submit(**predict_args))
-        cancel_handles.append(txt2.submit(**predict_args))
-        cancel_handles.append(submitBtn.click(**predict_args))
-        cancel_handles.append(submitBtn2.click(**predict_args))
+        multiplex_submit_btn.click(
+            None, [multiplex_sel], None, _js="""(multiplex_sel)=>multiplex_function_begin(multiplex_sel)""")
+        txt.submit(
+            None, [multiplex_sel], None, _js="""(multiplex_sel)=>multiplex_function_begin(multiplex_sel)""")
+        multiplex_sel.select(
+            None, [multiplex_sel], None, _js=f"""(multiplex_sel)=>run_multiplex_shift(multiplex_sel)""")
+        cancel_handles.append(submit_btn.click(**predict_args))
         resetBtn.click(None, None, [chatbot, history, status], _js=js_code_reset)   # 先在前端快速清除chatbot&status
         resetBtn2.click(None, None, [chatbot, history, status], _js=js_code_reset)  # 先在前端快速清除chatbot&status
         reset_server_side_args = (lambda history: ([], [], "已重置", json.dumps(history)), [history], [chatbot, history, status, history_cache])
@@ -222,10 +235,7 @@ def main():
         clearBtn.click(None, None, [txt, txt2], _js=js_code_clear)
         clearBtn2.click(None, None, [txt, txt2], _js=js_code_clear)
         if AUTO_CLEAR_TXT:
-            submitBtn.click(None, None, [txt, txt2], _js=js_code_clear)
-            submitBtn2.click(None, None, [txt, txt2], _js=js_code_clear)
-            txt.submit(None, None, [txt, txt2], _js=js_code_clear)
-            txt2.submit(None, None, [txt, txt2], _js=js_code_clear)
+            submit_btn.click(None, None, [txt, txt2], _js=js_code_clear)
         # 基础功能区的回调函数注册
         for k in functional:
             if ("Visible" in functional[k]) and (not functional[k]["Visible"]): continue
@@ -238,7 +248,6 @@ def main():
         file_upload.upload(on_file_uploaded, [file_upload, chatbot, txt, txt2, checkboxes, cookies], [chatbot, txt, txt2, cookies]).then(None, None, None,   _js=r"()=>{toast_push('上传完毕 ...'); cancel_loading_status();}")
         file_upload_2.upload(on_file_uploaded, [file_upload_2, chatbot, txt, txt2, checkboxes, cookies], [chatbot, txt, txt2, cookies]).then(None, None, None, _js=r"()=>{toast_push('上传完毕 ...'); cancel_loading_status();}")
         # 函数插件-固定按钮区
-
         for k in plugins:
             register_advanced_plugin_init_arr += f"""register_plugin_init("{k}","{encode_plugin_info(k, plugins[k])}");"""
             if plugins[k].get("Class", None):
@@ -329,9 +338,9 @@ def main():
     # Gradio的inbrowser触发不太稳定，回滚代码到原始的浏览器打开函数
     def run_delayed_tasks():
         import threading, webbrowser, time
-        print(f"如果浏览器没有自动打开，请复制并转到以下URL：")
-        if DARK_MODE:   print(f"\t「暗色主题已启用（支持动态切换主题）」: http://localhost:{PORT}")
-        else:           print(f"\t「亮色主题已启用（支持动态切换主题）」: http://localhost:{PORT}")
+        logger.info(f"如果浏览器没有自动打开，请复制并转到以下URL：")
+        if DARK_MODE:   logger.info(f"\t「暗色主题已启用（支持动态切换主题）」: http://localhost:{PORT}")
+        else:           logger.info(f"\t「亮色主题已启用（支持动态切换主题）」: http://localhost:{PORT}")
 
         def auto_updates(): time.sleep(0); auto_update()
         def open_browser(): time.sleep(2); webbrowser.open_new_tab(f"http://localhost:{PORT}")
