@@ -274,7 +274,7 @@ GROBID_URLS = [
 
 
 # Searxng互联网检索服务
-SEARXNG_URL = "https://cloud-1.agent-matrix.com/"
+SEARXNG_URLS = [ f"https://hamercity-ai-search-{x}.hf.space/" for x in range(1, 9) ]
 
 
 # 是否允许通过自然语言描述修改本页的配置，该功能具有一定的危险性，默认关闭
@@ -308,6 +308,10 @@ PLUGIN_HOT_RELOAD = False
 
 # 自定义按钮的最大数量限制
 NUM_CUSTOM_BASIC_BTN = 4
+
+
+# 媒体智能体的服务地址（这是一个huggingface空间，请前往huggingface复制该空间，然后把自己新的空间地址填在这里）
+DAAS_SERVER_URL = "https://hamercity-bbdown.hf.space/stream"
 
 
 
@@ -399,7 +403,7 @@ NUM_CUSTOM_BASIC_BTN = 4
 插件在线服务配置依赖关系示意图
 │
 ├── 互联网检索
-│   └── SEARXNG_URL
+│   └── SEARXNG_URLS
 │
 ├── 语音功能
 │   ├── ENABLE_AUDIO
