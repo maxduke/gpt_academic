@@ -7,11 +7,16 @@
     Configuration reading priority: environment variable > config_private.py > config.py
 """
 
-# [step 1]>> API_KEY = "sk-123456789xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx123456789"。极少数情况下，还需要填写组织（格式如org-123456789abcdefghijklmno的），请向下翻，找 API_ORG 设置项
-API_KEY = "此处填API密钥"    # 可同时填写多个API-KEY，用英文逗号分割，例如API_KEY = "sk-openaikey1,sk-openaikey2,fkxxxx-api2dkey3,azure-apikey4"
+# [step 1-1]>> ( 接入GPT等模型 ) API_KEY = "sk-123456789xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx123456789"。极少数情况下，还需要填写组织（格式如org-123456789abcdefghijklmno的），请向下翻，找 API_ORG 设置项
+API_KEY = "在此处填写APIKEY"    # 可同时填写多个API-KEY，用英文逗号分割，例如API_KEY = "sk-openaikey1,sk-openaikey2,fkxxxx-api2dkey3,azure-apikey4"
 
+# [step 1-2]>> ( 接入通义 qwen-max ) 接入通义千问在线大模型，api-key获取地址 https://dashscope.console.aliyun.com/
+DASHSCOPE_API_KEY = "" # 阿里灵积云API_KEY
 
-# [step 2]>> 改为True应用代理，如果直接在海外服务器部署，此处不修改；如果使用本地或无地域限制的大模型时，此处也不需要修改
+# [step 1-3]>> ( 接入 deepseek-reasoner, 即 deepseek-r1 ) 深度求索(DeepSeek) API KEY，默认请求地址为"https://api.deepseek.com/v1/chat/completions"
+DEEPSEEK_API_KEY = ""
+
+# [step 2]>> 改为True应用代理。如果使用本地或无地域限制的大模型时，此处不修改；如果直接在海外服务器部署，此处不修改
 USE_PROXY = False
 if USE_PROXY:
     """
@@ -32,11 +37,13 @@ else:
 
 # [step 3]>> 模型选择是 (注意: LLM_MODEL是默认选中的模型, 它*必须*被包含在AVAIL_LLM_MODELS列表中 )
 LLM_MODEL = "gpt-3.5-turbo-16k" # 可选 ↓↓↓
-AVAIL_LLM_MODELS = ["gpt-4-1106-preview", "gpt-4-turbo-preview", "gpt-4-vision-preview",
+AVAIL_LLM_MODELS = ["qwen-max", "o1-mini", "o1-mini-2024-09-12", "o1", "o1-2024-12-17", "o1-preview", "o1-preview-2024-09-12",
+                    "gpt-4-1106-preview", "gpt-4-turbo-preview", "gpt-4-vision-preview",
                     "gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-4-turbo-2024-04-09",
                     "gpt-3.5-turbo-1106", "gpt-3.5-turbo-16k", "gpt-3.5-turbo", "azure-gpt-3.5",
                     "gpt-4", "gpt-4-32k", "azure-gpt-4", "glm-4", "glm-4v", "glm-3-turbo",
-                    "gemini-1.5-pro", "chatglm3"
+                    "gemini-1.5-pro", "chatglm3", "chatglm4",
+                    "deepseek-chat", "deepseek-coder", "deepseek-reasoner"
                     ]
 
 EMBEDDING_MODEL = "text-embedding-3-small"
@@ -47,7 +54,7 @@ EMBEDDING_MODEL = "text-embedding-3-small"
 #   "glm-4-0520", "glm-4-air", "glm-4-airx", "glm-4-flash",
 #   "qianfan", "deepseekcoder",
 #   "spark", "sparkv2", "sparkv3", "sparkv3.5", "sparkv4",
-#   "qwen-turbo", "qwen-plus", "qwen-max", "qwen-local",
+#   "qwen-turbo", "qwen-plus", "qwen-local",
 #   "moonshot-v1-128k", "moonshot-v1-32k", "moonshot-v1-8k",
 #   "gpt-3.5-turbo-0613", "gpt-3.5-turbo-16k-0613", "gpt-3.5-turbo-0125", "gpt-4o-2024-05-13"
 #   "claude-3-haiku-20240307","claude-3-sonnet-20240229","claude-3-opus-20240229", "claude-2.1", "claude-instant-1.2",
@@ -55,6 +62,7 @@ EMBEDDING_MODEL = "text-embedding-3-small"
 #   "deepseek-chat" ,"deepseek-coder",
 #   "gemini-1.5-flash",
 #   "yi-34b-chat-0205","yi-34b-chat-200k","yi-large","yi-medium","yi-spark","yi-large-turbo","yi-large-preview",
+#   "grok-beta",
 # ]
 # --- --- --- ---
 # 此外，您还可以在接入one-api/vllm/ollama/Openroute时，
@@ -80,6 +88,30 @@ DEFAULT_WORKER_NUM = 3
 # 更多主题, 请查阅Gradio主题商店: https://huggingface.co/spaces/gradio/theme-gallery 可选 ["Gstaff/Xkcd", "NoCrypt/Miku", ...]
 THEME = "Default"
 AVAIL_THEMES = ["Default", "Chuanhu-Small-and-Beautiful", "High-Contrast", "Gstaff/Xkcd", "NoCrypt/Miku"]
+
+FONT = "Theme-Default-Font"
+AVAIL_FONTS = [
+    "默认值(Theme-Default-Font)", 
+    "宋体(SimSun)",  
+    "黑体(SimHei)",  
+    "楷体(KaiTi)",  
+    "仿宋(FangSong)",  
+    "华文细黑(STHeiti Light)",
+    "华文楷体(STKaiti)",  
+    "华文仿宋(STFangsong)",  
+    "华文宋体(STSong)",  
+    "华文中宋(STZhongsong)",  
+    "华文新魏(STXinwei)",  
+    "华文隶书(STLiti)", 
+    "思源宋体(Source Han Serif CN VF@https://chinese-fonts-cdn.deno.dev/packages/syst/dist/SourceHanSerifCN/result.css)",
+    "月星楷(Moon Stars Kai HW@https://chinese-fonts-cdn.deno.dev/packages/moon-stars-kai/dist/MoonStarsKaiHW-Regular/result.css)",
+    "珠圆体(MaokenZhuyuanTi@https://chinese-fonts-cdn.deno.dev/packages/mkzyt/dist/猫啃珠圆体/result.css)",
+    "平方萌萌哒(PING FANG MENG MNEG DA@https://chinese-fonts-cdn.deno.dev/packages/pfmmd/dist/平方萌萌哒/result.css)",
+    "Helvetica",
+    "ui-sans-serif",
+    "sans-serif",
+    "system-ui"
+]
 
 
 # 默认的系统提示词（system prompt）
@@ -132,15 +164,14 @@ MULTI_QUERY_LLM_MODELS = "gpt-3.5-turbo&chatglm3"
 QWEN_LOCAL_MODEL_SELECTION = "Qwen/Qwen-1_8B-Chat-Int8"
 
 
-# 接入通义千问在线大模型 https://dashscope.console.aliyun.com/
-DASHSCOPE_API_KEY = "" # 阿里灵积云API_KEY
-
-
 # 百度千帆（LLM_MODEL="qianfan"）
 BAIDU_CLOUD_API_KEY = ''
 BAIDU_CLOUD_SECRET_KEY = ''
 BAIDU_CLOUD_QIANFAN_MODEL = 'ERNIE-Bot'    # 可选 "ERNIE-Bot-4"(文心大模型4.0), "ERNIE-Bot"(文心一言), "ERNIE-Bot-turbo", "BLOOMZ-7B", "Llama-2-70B-Chat", "Llama-2-13B-Chat", "Llama-2-7B-Chat", "ERNIE-Speed-128K", "ERNIE-Speed-8K", "ERNIE-Lite-8K"
 
+
+# 如果使用ChatGLM3或ChatGLM4本地模型，请把 LLM_MODEL="chatglm3" 或LLM_MODEL="chatglm4"，并在此处指定模型路径
+CHATGLM_LOCAL_MODEL_PATH = "THUDM/glm-4-9b-chat" # 例如"/home/hmp/ChatGLM3-6B/"
 
 # 如果使用ChatGLM2微调模型，请把 LLM_MODEL="chatglmft"，并在此处指定模型路径
 CHATGLM_PTUNING_CHECKPOINT = "" # 例如"/home/hmp/ChatGLM2-6B/ptuning/output/6b-pt-128-1e-2/checkpoint-100"
@@ -235,13 +266,11 @@ MOONSHOT_API_KEY = ""
 YIMODEL_API_KEY = ""
 
 
-# 深度求索(DeepSeek) API KEY，默认请求地址为"https://api.deepseek.com/v1/chat/completions"
-DEEPSEEK_API_KEY = ""
-
-
 # 紫东太初大模型 https://ai-maas.wair.ac.cn
 TAICHU_API_KEY = ""
 
+# Grok API KEY
+GROK_API_KEY = ""
 
 # Mathpix 拥有执行PDF的OCR功能，但是需要注册账号
 MATHPIX_APPID = ""
@@ -273,8 +302,8 @@ GROBID_URLS = [
 ]
 
 
-# Searxng互联网检索服务
-SEARXNG_URLS = [ f"https://hamercity-ai-search-{x}.hf.space/" for x in range(1, 9) ]
+# Searxng互联网检索服务（这是一个huggingface空间，请前往huggingface复制该空间，然后把自己新的空间地址填在这里）
+SEARXNG_URLS = [ f"https://kaletianlre-beardvs{i}dd.hf.space/" for i in range(1,5) ]
 
 
 # 是否允许通过自然语言描述修改本页的配置，该功能具有一定的危险性，默认关闭
@@ -298,7 +327,7 @@ ARXIV_CACHE_DIR = "gpt_log/arxiv_cache"
 
 
 # 除了连接OpenAI之外，还有哪些场合允许使用代理，请尽量不要修改
-WHEN_TO_USE_PROXY = ["Download_LLM", "Download_Gradio_Theme", "Connect_Grobid",
+WHEN_TO_USE_PROXY = ["Connect_OpenAI", "Download_LLM", "Download_Gradio_Theme", "Connect_Grobid",
                      "Warmup_Modules", "Nougat_Download", "AutoGen", "Connect_OpenAI_Embedding"]
 
 
@@ -311,7 +340,7 @@ NUM_CUSTOM_BASIC_BTN = 4
 
 
 # 媒体智能体的服务地址（这是一个huggingface空间，请前往huggingface复制该空间，然后把自己新的空间地址填在这里）
-DAAS_SERVER_URL = "https://hamercity-bbdown.hf.space/stream"
+DAAS_SERVER_URLS = [ f"https://niuziniu-biligpt{i}.hf.space/stream" for i in range(1,5) ]
 
 
 
@@ -373,6 +402,7 @@ DAAS_SERVER_URL = "https://hamercity-bbdown.hf.space/stream"
 
 本地大模型示意图
 │
+├── "chatglm4"
 ├── "chatglm3"
 ├── "chatglm"
 ├── "chatglm_onnx"
